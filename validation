@@ -17,18 +17,25 @@ def check_traceability(folder_path):
                     response_count = 0
                     output_text = ""
                     for line in lines:
+                        # Controller file
                         if "RestController" in line:
                             has_rest_controller = True
+                         # total numer of mainframe connection
                         if "CICSREC" in line:
                             cicsrec_count += 1
+                        # total numer of external service connection
                         if "CloseableHttpResponse" in line:
                             closeable_count += 1
+                        # total numer of DB connection
                         if "PreparedStatement" in line:
                             dbcall_count += 1
+                        # Unique Id with start in each method
                         if ("tracebilityId" in line and "Start".casefold() in line)  :
                             start_count += 1
+                         # Unique Id with end in each method
                         if ("tracebilityId" in line and "End".casefold() in line) :
                             end_count += 1
+                        # Unique Id with end each call response time
                         if ("tracebilityId" in line and "response".casefold() in line)  :
                             response_count += 1
                     if (start_count != end_count):
