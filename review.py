@@ -1,11 +1,13 @@
 import os
 import fnmatch
+import ruamel.yaml
 
 
 def check_traceability(folder_path):
+  with open("Code Review Result.txt", "w") as output_file:
     for java_file in find_java_files(folder_path):
                 with open(java_file, "r") as f:
-                    print(java_file)
+                    #print(java_file)
                     lines = f.readlines()
 
                     has_rest_controller = False
@@ -17,37 +19,40 @@ def check_traceability(folder_path):
                     response_count = 0
                     output_text = ""
                     for line in lines:
-                        # for controller class
+                        # search for controller class
                         if "RestController" in line:
                             has_rest_controller = True
-                        # to find backend mainframe CICS call
-                        if "CICSREC" in line:
+                        # search for keyword for CICS mainframe requests
+                        if "CICS request execute staments" in line:
                             cicsrec_count += 1
-                        # to scound number of third party service or external service call
-                        if "CloseableHttpResponse" in line:
+                        # search for keyword for third part service call requests
+                        if "HTTP response key word for service call" in line:
                             closeable_count += 1
-                        #to find number of DB call
-                        if "PreparedStatement" in line:
+                        # search for keyword for DB execute statements
+                        if "DB execute stament key word" in line:
                             dbcall_count += 1
-                        # unique identfier with start in each method
-                        if ("tracebilityId" in line and "Start".casefold() in line)  :
-                            start_count += 1
-                         # unique identfier with end in each method
-                        if ("tracebilityId" in line and "End".casefold() in line) :
-                            end_count += 1
-                        # unique identfier with response time for each call
-                        if ("tracebilityId" in line and "response".casefold() in line)  :
-                            response_count += 1
-                    if (start_count != end_count):
-                        print("{}-is missing tracebilityId with 'Start' or 'End'".format(java_file))
-                    if has_rest_controller and response_count == 0:
-                        print("{} is missing tracebilityId with 'responseTime' ".format(java_file))
+                        if ("Unique identifier id in the message" in line) :
+                            if ("Start" in line or "start" in line)  :
+                             start_count += 1
+                            if ("End" in line or "end" in line) :
+                              end_count += 1
+                            if ("response" in line or "Response Time" in line or "response time" in line)  :
+                               response_count += 1
+                    if (start_count != end_count or start_count == 0 or end_count == 0):
+                        output_file.write(" \n")
+                        output_file.write("{} -is missing Unique identifier id with 'Start' or 'End' \n".format(java_file))
+                    if (has_rest_controller and response_count == 0):
+                        output_file.write(" \n")
+                        output_file.write("{} -is missing Unique identifier id with Response Time' \n".format(java_file))
                     if ((cicsrec_count > 0) and  (cicsrec_count!= response_count)):
-                        print("{} missing response time for FIS call ".format(java_file))
+                        output_file.write(" \n")
+                        output_file.write("{} -is missing Unique identifier id with 'responseTime' for CICS call \n".format(java_file))
                     if ((closeable_count > 0) and  (closeable_count!= response_count)):
-                        print("{} missing response time for service call ".format(java_file))
+                        output_file.write(" \n")
+                        output_file.write("{} -is missing 'responseTime' for service call \n".format(java_file))
                     if ((dbcall_count > 0) and  (dbcall_count!= response_count)):
-                        print("{} missing response time for DB call ".format(java_file))
+                        output_file.write(" \n")
+                        output_file.write("{} -is missing traceabilty id with 'responseTime' for DB call \n".format(java_file))
 
 
 def find_java_files(folder_path):
@@ -68,5 +73,24 @@ def find_java_files(folder_path):
                 yield os.path.join(root_folder, filename)
 
 
+def ci_ver(folder_path):
+    for root, dirs, files in os.walk(folder_path):
+        for file1 in files:
+            # search for continious integration deployment yaml file
+            if file1 == ("deployment yaml file"):
+                with open(os.path.join(root, file1), "r") as f:
+                    contents = f.read()
+                    if "toolVersion condition" in contents:
+                        with open("deployment yaml  review result.txt", "w") as output_file:
+                            output_file.write(" \n")
+                            output_file.write((os.path.join(root,file1)))
+                            output_file.write("\n borkvresion found in deployment yaml , pls remove. \n")
+                    else:
+                        with open ("deployment yaml  review result.txt" , "w") as output_file:
+                            output_file.write("\n toolVersion condition not found in deployment yaml  No action required \n")
+
+
+
 folder_path = input("Enter the source code folder path: ")
 check_traceability(folder_path)
+ci_ver(folder_path)
